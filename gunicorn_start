@@ -15,8 +15,8 @@ export PYTHONPATH=$FLASKDIR:$PYTHONPATH
 RUNDIR=$(dirname $SOCKFILE)
 test -d $RUNDIR || mkdir -p $RUNDIR
 
-exec gunicorn lolcats:app -b 127.0.0.1:8000 \
+su lolcats -c "gunicorn lolcats:app -b 127.0.0.1:8000 \
  --name $NAME \
  --workers $NUM_WORKERS \
  --user=$USER --group=$GROUP \
- --bind=unix:$SOCKFILE
+ --bind=unix:$SOCKFILE"
