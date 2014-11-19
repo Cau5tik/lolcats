@@ -1,0 +1,45 @@
+{
+    "region":"us-east-1",
+    "asg_config":{
+        "name":"lolcats_asg",
+        "availability_zones":"us-east-1",
+        "default_cooldown":"60",
+        "desired_capacity":"2",
+        "health_check_period":"60",
+        "health_check_type":"ELB",
+        "launch_config":{
+            "name":"lolcats_lc",
+            "key_name":"sliddell",
+            "instance_type":"t2.micro",
+            "image_id":"ami-1c2fa674",
+            "delete_on_termination":"True",
+            "associate_public_ip_address":"False"
+        },
+
+    },
+    "elb_config":{
+        "name":"lolcats-elb",
+        "zones":"None",
+        "listeners":[{
+            "LoadBalancerPortNumber":"80",
+            "InstancePortNumber":"8000",
+            "Protocol":"HTTP"
+        }],
+        "healthcheck":{
+            "interval":"20",
+            "healthy_threshold":"2",
+            "unhealthy_threshold":"4",
+            "target":"HTTP:8000/healthcheck"
+        }
+    },
+    "security":[{
+        "name":"lolcats_elb",
+        "ip_protocol":"tcp",
+        "from_port":"80",
+        "to_port":"80",
+        "cidr_ip":"0.0.0.0/0"
+    }]
+}
+
+
+

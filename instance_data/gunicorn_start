@@ -1,0 +1,22 @@
+#!/bin/bash
+
+NAME="lolcats"
+FLASKDIR=/home/lolcats/lolcats/instance_data
+VENVDIR=/home/lolcats/lolcats/cat_env
+SOCKFILE=/home/lolcats/lolcats/sock
+USER=lolcats
+GROUP=lolcats
+NUM_WORKERS=3
+
+echo "Starting $NAME"
+
+export PYTHONPATH=$FLASKDIR:$PYTHONPATH
+
+RUNDIR=$(dirname $SOCKFILE)
+test -d $RUNDIR || mkdir -p $RUNDIR
+
+su lolcats -c "gunicorn lolcats:app -b 127.0.0.1:8000 \
+ --name $NAME \
+ --workers $NUM_WORKERS \
+ --user=$USER --group=$GROUP \
+ --bind=unix:$SOCKFILE"
