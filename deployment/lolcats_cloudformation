@@ -1,0 +1,105 @@
+{
+"AWSTemplateFormatVersion" : "2010-09-09",
+"Description" : "Creates a VPC that hosts the lolcats web app. Includes an ASG and ELB",
+"Parameters" : {
+  "lolcatsAMI" : {
+    "Description" : "AMI id for lolcats worker",
+    "Type" : "String",
+    #TODO: regex for ami IDs
+    "AllowedPattern" : ""
+    "ConstraintDescription" : "Must match AMI-id pattern"
+  }
+},
+"Resources": {
+  "lolcatsVPC": {
+    "Type" : "AWS::EC2::VPC",
+    "Properties" : {
+      "CidrBlock" : "192.168.0.0/16"
+    }
+  },
+  "lolcatsSubnet" : {
+    "Type" : "AWS::EC2::Subnet",
+    "Properties" : {
+      "VpcId" : { "Ref" : "lolcatsVPC" },
+      "CidrBlock" : "192.168.7.0/24",
+    }
+  },
+  "lolcatsINGW" : {
+    "Type" : "AWS::EC2:InternetGateway"
+  },
+  "AttachGateway" : {
+    "Type" : "AWS::EC2::VPCGatewayAttachment",
+    "Properties" : {
+      "VpcId" : { "Ref" : "lolcatsVPC" },
+      "InternetGatewayId" : { "Ref" : "lolcatsINGW" }
+    }
+  },
+  "PublicRouteTable" : {
+    "Type" : "AWS::EC2::RouteTable",
+    "Properties" : {
+      "VpcId" : { "Ref" : "lolcatsVPC" }
+    }
+  },
+  "PublicRoute" : {
+    "Type" : "AWS::EC2::Route",
+    "DependsOn" : "AttachGateway",
+    "Properties" : {
+      "RouteTableId" : { "Ref" : "PublicRouteTable" },
+      "DestinationCidrBlock" : " 0.0.0.0/0",
+      "GatewayId" : { "Ref" : "lolcatsINGW" }
+    }
+  },
+  "PublicRouteTableAssociation" : {
+    "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    "Properties" : {
+      "SubnetId" : { "Ref" : "lolcatsSubnet" },
+      "RouteTableId" : { "Ref" : "PublicRouteTable" }
+    }
+  },
+  "lolcatsSG" : {
+    "Type" : "AWS::EC2::SecurityGroup",
+    "Properties" : {
+      "GroupDescription" : "Security Group for the ELB. Instances won't have public addresses, so we'll put them in this group too.",
+      "VpcId" : { "Ref" : "lolcatsVPC" },
+      "SecurityGroupIngress" : [ {
+        "IpProtocol" : "tcp",
+        "FromPort" : "80",
+        "ToPort" : "80",
+        "CidrIp" : "0.0.0.0/0"
+      },{
+        "IpProtocol" : "tcp",
+        "FromPort" : "8080",
+        "ToPort" : "8080",
+        #Can the security group reference itself like this?
+        "SourceSecurityGroupId" : { "Ref" : "lolcatsSG" }
+      } ]
+    }
+  },
+  "lolcatsLaunchConfig" : {
+    "Type" : "AWS::AutoScaling::LaunchConfiguration",
+    "Properties" : {
+      "ImageId" : { "Ref" : "lolcatsAMI" },
+      "InstanceType" : "t2.micro",
+      "SecurityGroups" : [
+        { "Ref" : "lolcatsSG" }
+      ],
+      #TODO: Figure out how to wedge my user data script in here
+      "UserData" : ""
+    }
+  },
+  "lolcatsASG" : {
+    "Type" : "AWS::AutoScaling::AutoScalingGroup",
+    "Properties" : {
+      "AvailabilityZones" : ["us-east-1"],
+      "Cooldown" : "90",
+      "DesiredCapacity" : "2",
+      "HealthCheckGracePeriod" : "60",
+      "HealthCheckType" : "ELB",
+      "LaunchConfigurationName" : { "Ref" : "lolcatsLaunchConfig" },
+      "LoadBalancerNames" : { "Ref" : "lolcatsELB" },
+      "MaxSize" : "5",
+      "MinSize" : "2"
+    }
+  }
+}
+    
